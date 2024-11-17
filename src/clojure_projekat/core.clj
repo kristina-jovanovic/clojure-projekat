@@ -4,14 +4,14 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (println "My closet"))
+  (println "\nCopyright: My closet"))
 
 ;defining pieces of clothing
-(def white-t-shirt {:name "White T=shirt" :type :upper-part :color :white :season :summer})
-(def green-t-shirt {:name "Green T-shirt" :type :upper-part :color :green :season :summer})
-(def black-sweater {:name "Black sweater" :type :upper-part :color :green :season :winter})
-(def black-pants {:name "Black pants" :type :lower-part :color :black :season :universal})
-(def blue-jeans {:name "Blue jeans" :type :lower-part :color :blue :season :universal})
+(def white-t-shirt {:name "White T-shirt" :type :top :color :white :season :summer})
+(def green-t-shirt {:name "Green T-shirt" :type :top :color :green :season :summer})
+(def black-sweater {:name "Black sweater" :type :top :color :green :season :winter})
+(def black-pants {:name "Black pants" :type :bottom :color :black :season :universal})
+(def blue-jeans {:name "Blue jeans" :type :bottom :color :blue :season :universal})
 (def white-sneakers {:name "White sneakers" :type :shoes :color :white :season :summer})
 (def beige-boots {:name "Beige boots" :type :shoes :color :beige :season :winter})
 (def black-winter-jacket {:name "Black winter jacket" :type :jacket :color :black :season :winter})
@@ -20,8 +20,8 @@
   [white-t-shirt
    black-pants
    white-sneakers
-   black-winter-jacket
    green-t-shirt
+   black-winter-jacket
    black-sweater
    blue-jeans
    beige-boots])
@@ -32,6 +32,13 @@
    :black #{:universal}
    :blue  #{:white :black :beige :grey}
    :beige #{:universal}})
+
+;defining combination rules, based on types
+(def allowed-combinations-of-types
+  #{#{:top :bottom :shoes}
+    #{:top :bottom :jacket :shoes}
+    #{:dress :shoes}
+    #{:dress :jacket :shoes}})
 
 ;checking if the colors match
 (defn colors-match? [color1 color2]
@@ -51,28 +58,57 @@
        (seasons-match? piece1 piece2)
        (not= (:type piece1) (:type piece2))))
 
-;checking validity of combinations with more pieces of clothes at once
-(defn combination-of-more-pieces? [pieces-of-clothes]
-  (every? (fn [[piece1 piece2]]
-            (combination-valid? piece1 piece2))
-          (for [x pieces-of-clothes y pieces-of-clothes :when (not= x y)]
-            [x y])))
+(require '[clojure.set :as set])
+;this is equal to 'some' but instead of true/nil, it returns true/false
+(def has-any? (complement not-any?))
 
-(defn recommendation [pieces-of-clothes season]
+;checking validity of combinations with more pieces of clothes at once
+(defn combination-of-more-pieces? [pieces-of-clothing]
+  ;(println "Testing pieces:" pieces-of-clothes "\n")
+  (let [types-in-combination (set (map :type pieces-of-clothing))]
+    (and (has-any? #(set/subset? % types-in-combination) allowed-combinations-of-types)
+         (every? (fn [[piece1 piece2]]
+                   ;(println "Testing pair:" piece1 piece2)
+                   (combination-valid? piece1 piece2))
+                 (for [x pieces-of-clothing y pieces-of-clothing :when (not= x y)]
+                   [x y])))))
+
+;generating all combinations with k elements from the list, using clojure.math.combinatorics
+(require '[clojure.math.combinatorics :as combo])
+(defn all-combinations [k list]
+  (combo/combinations list k))
+
+;using all-combinations but with different number of elements, number of elements is in a range
+(defn all-combinations-in-range [min-size max-size list]
+  (apply concat
+         (map #(all-combinations % list)
+              (range min-size (inc max-size)))))
+
+;filters pieces of clothing based on a season, takes all combinations with 2-4 elements from filtered list
+;and checks if every combined pair in that combination is combined properly
+;it returns every valid combination
+(defn recommendation [pieces-of-clothing season]
   (let [filtered (filter #(or (= (:season %) season)
                                 (= (:season %) :universal))
-                           pieces-of-clothes)]
-    (filter (fn [combination]
-              (every? (fn [[piece1 piece2]]
-                             combination-valid? piece1 piece2)
-                           (for [x combination, y combination :when (not= x y)]
-                             [x y])))
-              (partition 3 filtered))))
+                           pieces-of-clothing)]
+    ;(println "Filtered pieces:" filtered)
+    (filter combination-of-more-pieces?
+              (all-combinations-in-range 2 4 filtered))))
 
-(def combinations
+(def summer-combinations
+  (recommendation pieces-of-clothing :summer))
+
+;doseq = foreach
+(doseq [comb summer-combinations]
+  (println "\nRecommended summer combination:")
+  (doseq [piece comb]
+    (println (:name piece))))
+
+(def winter-combinations
   (recommendation pieces-of-clothing :winter))
 
-(doseq [comb combinations]
-  (println "Recommended combination:")
+;doseq = foreach
+(doseq [comb winter-combinations]
+  (println "\nRecommended winter combination:")
   (doseq [piece comb]
     (println (:name piece))))
