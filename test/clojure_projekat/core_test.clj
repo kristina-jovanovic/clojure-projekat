@@ -14,8 +14,8 @@
 ;
 ;(facts (distinct (take 5 (repeatedly recommend-what-to-wear))) => true)
 
-(facts (boje-se-slazu? :bela :crna) => true)
-(facts (sezone-iste? majica-bela pantalone-crne) => true)
-(facts (kombinacija-validna? majica-bela pantalone-crne) => true)
-(facts (kombinacija-vise-komada? [majica-bela pantalone-crne patike-bele]) => true)
+(facts (colors-match? :white :black) => true)
+(facts (seasons-match? white-t-shirt black-pants) => true)
+(facts (combination-valid? white-t-shirt black-pants) => true)
+(facts (combination-of-more-pieces? [white-t-shirt black-pants white-sneakers]) => true)
 

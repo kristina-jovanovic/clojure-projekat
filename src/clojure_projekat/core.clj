@@ -6,65 +6,73 @@
   [& args]
   (println "My closet"))
 
-;definisanje odevnih komada
-(def majica-bela {:naziv "Bela majica" :tip :gornji-deo :boja :bela :sezona :leto})
-(def majica-zelena {:naziv "Green T-shirt" :tip :gornji-deo :boja :zelena :sezona :leto})
-(def dzemper-crni {:naziv "Black sweatshirt" :tip :gornji-deo :boja :zelena :sezona :zima})
-(def pantalone-crne {:naziv "Crne pantalone" :tip :donji-deo :boja :crna :sezona :univerzalno})
-(def farmerke-plave {:naziv "Plave farmerke" :tip :donji-deo :boja :plava :sezona :univerzalno})
-(def patike-bele {:naziv "Bele patike" :tip :obuca :boja :bela :sezona :leto})
-(def bez-cizme {:naziv "Bez cizme" :tip :obuca :boja :bez :sezona :zima})
-(def jakna-zimska-crna {:naziv "Crna zimska jakna" :tip :jakna :boja :crna :sezona :zima})
+;defining pieces of clothing
+(def white-t-shirt {:name "White T=shirt" :type :upper-part :color :white :season :summer})
+(def green-t-shirt {:name "Green T-shirt" :type :upper-part :color :green :season :summer})
+(def black-sweater {:name "Black sweater" :type :upper-part :color :green :season :winter})
+(def black-pants {:name "Black pants" :type :lower-part :color :black :season :universal})
+(def blue-jeans {:name "Blue jeans" :type :lower-part :color :blue :season :universal})
+(def white-sneakers {:name "White sneakers" :type :shoes :color :white :season :summer})
+(def beige-boots {:name "Beige boots" :type :shoes :color :beige :season :winter})
+(def black-winter-jacket {:name "Black winter jacket" :type :jacket :color :black :season :winter})
 
-(def odevni-komadi [majica-bela pantalone-crne patike-bele jakna-zimska-crna majica-zelena dzemper-crni farmerke-plave bez-cizme])
+(def pieces-of-clothing
+  [white-t-shirt
+   black-pants
+   white-sneakers
+   black-winter-jacket
+   green-t-shirt
+   black-sweater
+   blue-jeans
+   beige-boots])
 
-;definisanje pravila za boje - svaka boja ima set boja sa kojima se slaze
-(def pravila-boja
-  {:bela  #{:univerzalno}
-   :crna  #{:univerzalno}
-   :plava #{:bela :crna :bez :siva}
-   :bez   #{:univerzalno}})
+;defining color rules - every color has a set of colors that matches
+(def color-rules
+  {:white #{:universal}
+   :black #{:universal}
+   :blue  #{:white :black :beige :grey}
+   :beige #{:universal}})
 
-;provera da li se boje slazu
-(defn boje-se-slazu? [boja1 boja2]
-  (or (= (get pravila-boja boja1 #{}) #{:univerzalno})
-      (= (get pravila-boja boja2 #{}) #{:univerzalno})
-      (contains? (get pravila-boja boja1 #{}) boja2)))
+;checking if the colors match
+(defn colors-match? [color1 color2]
+  (or (= (get color-rules color1 #{}) #{:universal})
+      (= (get color-rules color2 #{}) #{:universal})
+      (contains? (get color-rules color1 #{}) color2)))
 
-;provera da li se sezone podudaraju
-(defn sezone-iste? [komad1 komad2]
-  (or (= (:sezona komad1) :univerzalno)
-      (= (:sezona komad2) :univerzalno)
-      (= (:sezona komad1) (:sezona komad2))))
+;checking if the seasons match
+(defn seasons-match? [piece1 piece2]
+  (or (= (:season piece1) :universal)
+      (= (:season piece2) :universal)
+      (= (:season piece1) (:season piece2))))
 
-;provera da li je kombinacija validna na osnovu boje, sezone i tipa
-(defn kombinacija-validna? [komad1 komad2]
-  (and (boje-se-slazu? (:boja komad1) (:boja komad2))
-       (sezone-iste? komad1 komad2)
-       (not= (:tip komad1) (:tip komad2))))
+;checking if the combination is valid based on color, season and type
+(defn combination-valid? [piece1 piece2]
+  (and (colors-match? (:color piece1) (:color piece2))
+       (seasons-match? piece1 piece2)
+       (not= (:type piece1) (:type piece2))))
 
-;provera validnosti kombinacije sa vise odevnih komada odjednom
-(defn kombinacija-vise-komada? [odevni-komadi]
-  (every? (fn [[komad1 komad2]]
-            (kombinacija-validna? komad1 komad2))
-          (for [x odevni-komadi y odevni-komadi :when (not= x y)]
+;checking validity of combinations with more pieces of clothes at once
+(defn combination-of-more-pieces? [pieces-of-clothes]
+  (every? (fn [[piece1 piece2]]
+            (combination-valid? piece1 piece2))
+          (for [x pieces-of-clothes y pieces-of-clothes :when (not= x y)]
             [x y])))
 
-(defn recommendation [odevni-komadi sez]
-  (let [filtrirani (filter #(or (= (:sezona %) sez)
-                                (= (:sezona %) :univerzalno))
-                           odevni-komadi)]
-    (filter (fn [kombinacija]
-              (every? (fn [[odev1 odev2]]
-                             kombinacija-validna? odev1 odev2)
-                           (for [x kombinacija, y kombinacija :when (not= x y)]
+(defn recommendation [pieces-of-clothes season]
+  (let [filtered (filter #(or (= (:season %) season)
+                                (= (:season %) :universal))
+                           pieces-of-clothes)]
+    (filter (fn [combination]
+              (every? (fn [[piece1 piece2]]
+                             combination-valid? piece1 piece2)
+                           (for [x combination, y combination :when (not= x y)]
                              [x y])))
-              (partition 3 filtrirani))))
+              (partition 3 filtered))))
 
-(def kombinacije
-  (recommendation odevni-komadi :zima))
+(def combinations
+  (recommendation pieces-of-clothing :winter))
 
-(doseq [komb kombinacije]
-  (println "Predlozena kombinacija:")
-  (doseq [komad komb]
-    (println (:naziv komad))))
+(doseq [comb combinations]
+  (println "Recommended combination:")
+  (doseq [piece comb]
+    (println (:name piece))))
